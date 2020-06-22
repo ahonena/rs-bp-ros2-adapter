@@ -21,8 +21,8 @@
  *****************************************************************************/
 
 #include "rs_driver/api/lidar_driver.h"
-#include "sensor_msgs/msg/pointcloud2.hpp"
-#include <mutex> 
+#include "rclcpp/rclcpp.hpp"
+#include "sensor_msgs/msg/point_cloud.hpp"
 
 using namespace robosense::lidar;
 
