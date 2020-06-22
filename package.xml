@@ -1,0 +1,9 @@
+<package format="3">
+  <name>rs-bp-ros2-adapter</name>
+  <version>0.0.1</version>
+  <description>
+  This is a small adapter for interfacing Robosense Bpearl lidar to ROS2
+  </description>
+  <maintainer email="andrei.ahonen@tuni.fi">Andrei Ahonen</maintainer>
+  <license>GPLv2</license>
+</package>

@@ -21,6 +21,9 @@
  *****************************************************************************/
 
 #include "rs_driver/api/lidar_driver.h"
+#include "sensor_msgs/msg/pointcloud2.hpp"
+#include <mutex> 
+
 using namespace robosense::lidar;
 
 struct PointXYZI  ///< user defined point type
