@@ -1,94 +1,107 @@
-/******************************************************************************
- * Copyright 2020 RoboSense All rights reserved.
- * Suteng Innovation Technology Co., Ltd. www.robosense.ai
+/* Looked example from:
+http://www.microhowto.info/howto/listen_for_and_receive_udp_datagrams_in_c.html
+*/
 
- * This software is provided to you directly by RoboSense and might
- * only be used to access RoboSense LiDAR. Any compilation,
- * modification, exploration, reproduction and redistribution are
- * restricted without RoboSense's prior consent.
 
- * THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESSED OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
- * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL ROBOSENSE BE LIABLE FOR ANY DIRECT,
- * INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
- * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING
- * IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- *****************************************************************************/
+#include <iostream>
+#include <errno.h>
+#include <string.h>
+#include <unistd.h>
+#include <netdb.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <bitset>
+#include <array>
 
-#include "rs_driver/api/lidar_driver.h"
 #include "rclcpp/rclcpp.hpp"
-#include "sensor_msgs/msg/point_cloud.hpp"
+#include "sensor_msgs/msg/point_cloud2.hpp"
 
-using namespace robosense::lidar;
 
-struct PointXYZI  ///< user defined point type
-{
-  double x;
-  double y;
-  double z;
-  double intensity;
-};
+#define PRINT_STUFF
 
-/**
- * @description: The point cloud callback function. This funciton will be registered to lidar driver.
- *              When the point cloud message is ready, driver can send out message through this function.
- * @param msg  The lidar point cloud message.
- */
-void pointCloudCallback(const PointcloudMsg<PointXYZI>& msg)
-{
-  /* Note: Please do not put time-consuming operations in the callback function! */
-  /* Make a copy of the message and process it in another thread is recommended*/
-  std::cout << "msg: " << msg.seq << " pointcloud size: " << msg.pointcloud_ptr->size() << std::endl;
-}
+int main(int argc, char * argv[]){
+  std::cout << "This is a very primitive Robosense MSOP parser and publisher" << std::endl;
 
-/**
- * @description: The exception callback function. This function will be registered to lidar driver.
- * @param code The error code struct.
- */
-void exceptionCallback(const Error& code)
-{
-  /* Note: Please do not put time-consuming operations in the callback function! */
-  /* Make a copy of the error message and process it in another thread is recommended*/
-  std::cout << "Error code : " << code.toString() << std::endl;
-}
-
-int main(int argc, char* argv[])
-{
-  std::cout << "\033[1m\033[35m"
-            << "------------------------------------------------------" << std::endl;
-  std::cout << "            RS_Driver Core Version: V " << RSLIDAR_VERSION_MAJOR << "." << RSLIDAR_VERSION_MINOR << "."
-            << RSLIDAR_VERSION_PATCH << std::endl;
-  std::cout << "\033[1m\033[35m"
-            << "------------------------------------------------------"
-            << "\033[0m" << std::endl;
-
-  LidarDriver<PointXYZI> driver;  ///< Declare the driver object
-
-  RSDriverParam param;                  ///< Creat a parameter object
-  param.input_param.msop_port = 6699;   ///< Set the lidar msop port number the default 6699
-  param.input_param.difop_port = 7788;  ///< Set the lidar difop port number the default 7788
-  param.lidar_type = LidarType::RSBP;   ///< Set the lidar type. Make sure this type is correct!
-  param.print();
-
-  driver.regExceptionCallback(exceptionCallback);   ///< Register the exception callback funtion into the driver
-  driver.regPointRecvCallback(pointCloudCallback);  ///< Register the point cloud callback funtion into the driver
-  if (!driver.init(param))                          ///< Call the init funtion and pass the parameter
-  {
-    std::cout << "Driver Initialize Error..." << std::endl;
-    return 0;
-  }
-  driver.start();  ///< Call the start funtion. The driver thread will start.
-
-  std::cout << "RoboSense Lidar-Driver Linux pcap demo start......" << std::endl;
-  while (true)
-  {
-    sleep(1);
+  // Initializing UDP listening
+  const char* hostname=0; /* wildcard */
+  const char* portname="6699";
+  struct addrinfo hints;
+  memset(&hints,0,sizeof(hints));
+  hints.ai_family=AF_INET;
+  hints.ai_socktype=SOCK_DGRAM;
+  hints.ai_protocol=IPPROTO_UDP;
+  hints.ai_flags=AI_PASSIVE;
+  struct addrinfo* res=0;
+  int err=getaddrinfo(hostname,portname,&hints,&res);
+  if (err!=0) {
+    fprintf(stderr, "failed to resolve local socket address (err=%d)\n",err);
+    return -1;
   }
 
-  return 0;
+  int fd=socket(res->ai_family,res->ai_socktype,res->ai_protocol);
+  if (fd==-1) {
+    fprintf(stderr, "socket error: %s\n",strerror(errno));
+    return -1;
+  }
+
+  if (bind(fd,res->ai_addr,res->ai_addrlen)==-1) {
+    fprintf(stderr, "bind error: %s\n",strerror(errno));
+    return -1;
+  }
+  freeaddrinfo(res);
+
+  // ROS2 initialization stuff
+  // https://answers.ros.org/question/338026/zero-latency-publishing-of-sensor-data/
+  rclcpp::init(argc, argv);
+  //rclcpp::Node rsbp_node("my_node");
+  auto rsbp_node = rclcpp::Node::make_shared("my_node");
+  auto rsbp_pub = rsbp_node->create_publisher<sensor_msgs::msg::PointCloud2>("my_rsbp_topic");
+  auto rsbp_msg = std::make_shared<sensor_msgs::msg::PointCloud2>();
+
+
+
+
+  // Main loop
+  while(1){
+
+    char buffer[2048];
+    struct sockaddr_storage src_addr;
+    socklen_t src_addr_len=sizeof(src_addr);
+    ssize_t count=recvfrom(fd,buffer,sizeof(buffer),0,(struct sockaddr*)&src_addr,&src_addr_len);
+    if (count==-1) {
+      fprintf(stderr, "recvfrom error: %s\n",strerror(errno));
+      return -1;
+    }
+    else if (count==sizeof(buffer)) {
+      fprintf(stderr, "datagram too large for buffer: truncated\n");
+    }
+
+
+
+
+// MAIN PART of the loop
+// MSOP protocol information can be found in robosense manuals
+    else if(count==1248){
+      #ifdef PRINT_STUFF
+      std::cout << std::endl;
+      printf("Robosense MSOP message received, length %d \n", (int) count);
+      #endif
+      
+      int msg_offset = 42;
+      
+
+	}
+
+
+
+
+
+
+    else{
+      #ifdef PRINT_STUFF
+      std::cout << std::endl;
+      printf("UDP message received, length %d \n", (int) count);
+      #endif
+	}
+    }
 }

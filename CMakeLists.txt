@@ -1,7 +1,6 @@
 cmake_minimum_required (VERSION 3.10.2)
 project (rsbp_ros2_adapter LANGUAGES CXX)
 
-find_package(Boost COMPONENTS system REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 
@@ -14,10 +13,9 @@ ${sensor_msgs_INCLUDE_DIRS}
 )
 
 
-target_link_libraries(rsbp_ros2_adapter
-${Boost_LIBRARIES}       
-pcap
+target_link_libraries(rsbp_ros2_adapter      
 pthread
+dl
 ${rclcpp_LIBRARIES}
 ${sensor_msgs_LIBRARIES}		      
 )
