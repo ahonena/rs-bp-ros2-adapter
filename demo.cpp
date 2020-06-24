@@ -17,6 +17,38 @@ http://www.microhowto.info/howto/listen_for_and_receive_udp_datagrams_in_c.html
 #include "sensor_msgs/msg/point_cloud2.hpp"
 
 
+class MinimalPublisher : public rclcpp::Node
+{
+  public:
+    MinimalPublisher()
+    : Node("minimal_publisher"), count_(0)
+    {
+      publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("my_rsbp_topic");
+    }
+
+    sensor_msgs::msg::PointCloud2 message;
+    sensor_msgs::msg::PointField field_1;
+    sensor_msgs::msg::PointField field_2;
+    sensor_msgs::msg::PointField field_3;
+    sensor_msgs::msg::PointField field_4;
+
+    std::shared_ptr<sensor_msgs::msg::PointCloud2> message_ptr;
+
+    void publish_pointcloud()
+    {
+      //message.data = "Hello, world! " + std::to_string(count_++);
+      //RCLCPP_INFO(this->get_logger(), "Publishing: '%s'", message.data.c_str());
+      //(std::shared_ptr< const MessageT >
+      publisher_->publish(message);
+    }
+  private:
+
+    rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr publisher_;
+    size_t count_;
+  };
+
+
+
 #define PRINT_STUFF
 
 int main(int argc, char * argv[]){
@@ -54,9 +86,9 @@ int main(int argc, char * argv[]){
   // https://answers.ros.org/question/338026/zero-latency-publishing-of-sensor-data/
   rclcpp::init(argc, argv);
   //rclcpp::Node rsbp_node("my_node");
-  auto rsbp_node = rclcpp::Node::make_shared("my_node");
-  auto rsbp_pub = rsbp_node->create_publisher<sensor_msgs::msg::PointCloud2>("my_rsbp_topic");
-  auto rsbp_msg = std::make_shared<sensor_msgs::msg::PointCloud2>();
+  //auto rsbp_node = rclcpp::Node::make_shared("my_node");
+  //auto rsbp_pub = rsbp_node->create_publisher<sensor_msgs::msg::PointCloud2>("my_rsbp_topic");
+  //auto rsbp_msg = std::make_shared<sensor_msgs::msg::PointCloud2>();
 
 
 
