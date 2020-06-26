@@ -15,7 +15,7 @@ http://www.microhowto.info/howto/listen_for_and_receive_udp_datagrams_in_c.html
 
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
-
+#include "sensor_msgs/point_cloud2_iterator.hpp"
 
 class MinimalPublisher : public rclcpp::Node
 {
@@ -23,15 +23,21 @@ class MinimalPublisher : public rclcpp::Node
     MinimalPublisher()
     : Node("minimal_publisher"), count_(0)
     {
-      publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("my_rsbp_topic");
+      publisher_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("my_rsbp_topic",1);
+      message.height = 1;
+      message.width = 384;
+      message.point_step = 6;
+
+      sensor_msgs::PointCloud2Modifier modifier(message);
+      modifier.setPointCloud2Fields(4, "azimuth", 1, sensor_msgs::msg::PointField::UINT16,
+                                     "elevation", 1, sensor_msgs::msg::PointField::UINT8,
+                                     "distance", 1, sensor_msgs::msg::PointField::UINT16,
+                                     "reflectivity", 1, sensor_msgs::msg::PointField::UINT8);
+
+      modifier.resize(384);
     }
 
     sensor_msgs::msg::PointCloud2 message;
-    sensor_msgs::msg::PointField field_1;
-    sensor_msgs::msg::PointField field_2;
-    sensor_msgs::msg::PointField field_3;
-    sensor_msgs::msg::PointField field_4;
-
     std::shared_ptr<sensor_msgs::msg::PointCloud2> message_ptr;
 
     void publish_pointcloud()
@@ -85,6 +91,7 @@ int main(int argc, char * argv[]){
   // ROS2 initialization stuff
   // https://answers.ros.org/question/338026/zero-latency-publishing-of-sensor-data/
   rclcpp::init(argc, argv);
+  MinimalPublisher my_publisher;
   //rclcpp::Node rsbp_node("my_node");
   //auto rsbp_node = rclcpp::Node::make_shared("my_node");
   //auto rsbp_pub = rsbp_node->create_publisher<sensor_msgs::msg::PointCloud2>("my_rsbp_topic");
@@ -121,7 +128,7 @@ int main(int argc, char * argv[]){
       
       int msg_offset = 42;
       
-
+      my_publisher.publish_pointcloud();
 	}
 
 
