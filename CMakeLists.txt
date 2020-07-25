@@ -15,6 +15,7 @@ ${sensor_msgs_INCLUDE_DIRS}
 )
 
 
+set(CMAKE_VERBOSE_MAKEFILE FALSE)
 
 target_link_libraries(rsbp_ros2_adapter      
 pthread
