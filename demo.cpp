@@ -152,7 +152,7 @@ int main(int argc, char * argv[]){
 	// ROS2 initialization stuff
 	// https://answers.ros.org/question/338026/zero-latency-publishing-of-sensor-data/
 	rclcpp::init(argc, argv);
-	auto node = rclcpp::Node::make_shared("IMU_node");
+	auto node = rclcpp::Node::make_shared("My_node");
 	MinimalPublisher my_publisher;
 	//rclcpp::Node rsbp_node("my_node");
 	//auto rsbp_node = rclcpp::Node::make_shared("my_node");
