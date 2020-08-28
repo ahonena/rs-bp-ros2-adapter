@@ -1,5 +1,5 @@
 # rs-bp-ros2-adapter
-This is a small adapter for interfacing [Robosense Bpearl](https://www.robosense.ai/rslidar/rs-bpearl) with ROS2 using the rs_driver
+This is a small adapter for interfacing [Robosense Bpearl](https://www.robosense.ai/rslidar/rs-bpearl) with ROS2.
 It is not intended to replace Robosense's own ROS2 drivers, but to showcase a simple ROS2 module/package. 
 
 # What does it do
